@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # 主应用服务
+  web_app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+      - influxdb
+    networks:
+      - trading_network
+
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ai_trading
+      POSTGRES_USER: ai_trader
+      POSTGRES_PASSWORD: your_secure_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_database.sql:/docker-entrypoint-initdb.d/init_database.sql
+    networks:
+      - trading_network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass your_redis_password_123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - trading_network
+
+  # InfluxDB时序数据库
+  influxdb:
+    image: influxdb:2.7
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
+      DOCKER_INFLUXDB_INIT_ORG: ai-trading
+      DOCKER_INFLUXDB_INIT_BUCKET: trading_data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ai-trading-token-123
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - trading_network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: .
+      target: development
+    command: celery -A core.celery_app worker --loglevel=info
+    environment:
+      - APP_ENV=development
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - trading_network
+
+  # Celery Beat
+  celery_beat:
+    build:
+      context: .
+      target: development
+    command: celery -A core.celery_app beat --loglevel=info
+    environment:
+      - APP_ENV=development
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - trading_network
+
+  # Flower监控
+  flower:
+    build:
+      context: .
+      target: development
+    command: celery -A core.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - APP_ENV=development
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - trading_network
+
+  # Prometheus监控
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - trading_network
+
+  # Grafana仪表板
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - trading_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  trading_network:
+    driver: bridge

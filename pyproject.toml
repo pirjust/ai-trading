@@ -1,0 +1,40 @@
+[project]
+name = "ai-trading-system"
+version = "1.0.0"
+description = "AI量化加密货币交易系统"
+authors = [{name = "AI Trading Team", email = "contact@ai-trading.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/ai-trading/ai-trading-system"
+Documentation = "https://ai-trading-system.readthedocs.io"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ai_trading*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests"
+]

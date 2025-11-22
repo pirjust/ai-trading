@@ -1,0 +1,20 @@
+[Unit]
+Description=AI量化交易系统
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/ai-trading
+Environment=PATH=/usr/bin:/usr/local/bin
+EnvironmentFile=/www/wwwroot/ai-trading/.env
+ExecStart=/bin/bash /www/wwwroot/ai-trading/scripts/start_services.sh
+ExecStop=/bin/bash /www/wwwroot/ai-trading/scripts/stop_services.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
