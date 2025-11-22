@@ -1,0 +1,182 @@
+groups:
+- name: ai-trading-alerts
+  rules:
+  # 系统资源告警
+  - alert: HighCPUUsage
+    expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "CPU使用率过高"
+      description: "实例 {{ $labels.instance }} 的CPU使用率超过80% (当前值: {{ $value }}%)"
+
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "内存使用率过高"
+      description: "实例 {{ $labels.instance }} 的内存使用率超过85% (当前值: {{ $value }}%)"
+
+  - alert: HighDiskUsage
+    expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "磁盘使用率过高"
+      description: "实例 {{ $labels.instance }} 的磁盘使用率超过90% (当前值: {{ $value }}%)"
+
+  # 交易系统应用告警
+  - alert: TradingAppDown
+    expr: up{job="ai-trading-app"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "交易系统应用宕机"
+      description: "交易系统应用已停止响应超过1分钟"
+
+  - alert: HighAPIErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "API错误率过高"
+      description: "API错误率超过10% (当前值: {{ $value }}%)"
+
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "响应时间过长"
+      description: "95%的请求响应时间超过2秒 (当前值: {{ $value }}秒)"
+
+  # 数据库告警
+  - alert: DatabaseConnectionError
+    expr: pg_up == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "数据库连接失败"
+      description: "无法连接到PostgreSQL数据库"
+
+  - alert: HighDatabaseConnections
+    expr: pg_stat_database_numbackends > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "数据库连接数过高"
+      description: "数据库连接数超过50 (当前值: {{ $value }})"
+
+  - alert: DatabaseSlowQueries
+    expr: rate(pg_stat_statements_calls[5m]) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "数据库慢查询"
+      description: "数据库慢查询数量异常 (当前值: {{ $value }})"
+
+  # Redis告警
+  - alert: RedisDown
+    expr: redis_up == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis服务宕机"
+      description: "Redis服务已停止响应"
+
+  - alert: HighRedisMemoryUsage
+    expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Redis内存使用率过高"
+      description: "Redis内存使用率超过80% (当前值: {{ $value }}%)"
+
+  # 网络告警
+  - alert: HighNetworkTraffic
+    expr: rate(node_network_receive_bytes_total[5m]) > 1000000000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "网络流量异常"
+      description: "网络接收流量异常 (当前值: {{ $value }} bytes/s)"
+
+  # 容器告警
+  - alert: ContainerRestartFrequently
+    expr: rate(container_last_seen[5m]) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "容器频繁重启"
+      description: "容器在5分钟内重启超过5次"
+
+  - alert: HighContainerCPUUsage
+    expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 70
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "容器CPU使用率过高"
+      description: "容器CPU使用率超过70% (当前值: {{ $value }}%)"
+
+  # 业务逻辑告警
+  - alert: TradingStrategyError
+    expr: rate(trading_strategy_errors_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "交易策略错误"
+      description: "交易策略错误率异常 (当前值: {{ $value }})"
+
+  - alert: ExchangeAPIError
+    expr: rate(exchange_api_errors_total[5m]) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "交易所API错误"
+      description: "交易所API调用错误率异常 (当前值: {{ $value }})"
+
+  - alert: RiskAlertTriggered
+    expr: risk_alerts_total > 0
+    for: 0m
+    labels:
+      severity: critical
+    annotations:
+      summary: "风控警报触发"
+      description: "检测到风控警报，请立即检查"
+
+  # 数据同步告警
+  - alert: DataSyncLag
+    expr: data_sync_lag_seconds > 300
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "数据同步延迟"
+      description: "数据同步延迟超过5分钟 (当前值: {{ $value }}秒)"
+
+  # 备份告警
+  - alert: BackupFailed
+    expr: backup_last_success_timestamp < time() - 86400
+    for: 0m
+    labels:
+      severity: critical
+    annotations:
+      summary: "备份失败"
+      description: "数据库备份已超过24小时未成功执行"
