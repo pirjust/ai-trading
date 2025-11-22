@@ -1,0 +1,61 @@
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'alertmanager@ai-trading.com'
+  smtp_require_tls: false
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+  - match:
+      severity: critical
+    receiver: 'critical-alerts'
+    group_wait: 5s
+    repeat_interval: 5m
+  - match:
+      severity: warning
+    receiver: 'warning-alerts'
+    group_wait: 10s
+    repeat_interval: 15m
+
+receivers:
+- name: 'web.hook'
+  webhook_configs:
+  - url: 'http://web_app:8000/api/alerts'
+    send_resolved: true
+
+- name: 'critical-alerts'
+  webhook_configs:
+  - url: 'http://web_app:8000/api/alerts/critical'
+    send_resolved: true
+  email_configs:
+  - to: 'admin@ai-trading.com'
+    subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+    body: |
+      {{ range .Alerts }}
+      {{ .Annotations.summary }}
+      {{ .Annotations.description }}
+      {{ end }}
+
+- name: 'warning-alerts'
+  webhook_configs:
+  - url: 'http://web_app:8000/api/alerts/warning'
+    send_resolved: true
+  email_configs:
+  - to: 'admin@ai-trading.com'
+    subject: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+    body: |
+      {{ range .Alerts }}
+      {{ .Annotations.summary }}
+      {{ .Annotations.description }}
+      {{ end }
+
+inhibit_rules:
+- source_match:
+    severity: 'critical'
+  target_match:
+    severity: 'warning'
+  equal: ['alertname', 'instance']
