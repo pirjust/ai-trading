@@ -1,0 +1,324 @@
+# AI量化交易系统部署配置文件
+# 支持多环境配置管理
+
+# 基础配置
+project:
+  name: "ai-trading"
+  version: "1.0.0"
+  description: "AI量化交易系统"
+  author: "AI Trading Team"
+  
+# 部署环境配置
+environments:
+  # 生产环境配置
+  production:
+    # 服务器配置
+    server:
+      host: "your-production-server.com"
+      port: 22
+      user: "root"
+      deploy_path: "/www/wwwroot/ai-trading"
+      
+    # 数据库配置
+    database:
+      host: "localhost"
+      port: 5432
+      name: "ai_trading"
+      user: "ai_trader"
+      password: "${DB_PASSWORD}"  # 从环境变量读取
+      
+    # Redis配置
+    redis:
+      host: "localhost"
+      port: 6379
+      password: "${REDIS_PASSWORD}"
+      db: 0
+      
+    # API配置
+    api:
+      host: "127.0.0.1"
+      port: 8000
+      workers: 4
+      log_level: "INFO"
+      
+    # 前端配置
+    frontend:
+      build_command: "npm run build"
+      output_dir: "dist"
+      
+    # 监控配置
+    monitoring:
+      enabled: true
+      port: 9090
+      metrics_path: "/metrics"
+      
+    # 安全配置
+    security:
+      ssl_enabled: true
+      cors_origins: ["https://your-domain.com"]
+      rate_limit: "100/minute"
+      
+  # 测试环境配置
+  staging:
+    # 服务器配置
+    server:
+      host: "your-staging-server.com"
+      port: 22
+      user: "root"
+      deploy_path: "/www/wwwroot/ai-trading-staging"
+      
+    # 数据库配置
+    database:
+      host: "localhost"
+      port: 5432
+      name: "ai_trading_staging"
+      user: "ai_trader_staging"
+      password: "${STAGING_DB_PASSWORD}"
+      
+    # Redis配置
+    redis:
+      host: "localhost"
+      port: 6379
+      password: "${STAGING_REDIS_PASSWORD}"
+      db: 1
+      
+    # API配置
+    api:
+      host: "127.0.0.1"
+      port: 8001
+      workers: 2
+      log_level: "DEBUG"
+      
+    # 前端配置
+    frontend:
+      build_command: "npm run build:staging"
+      output_dir: "dist"
+      
+    # 监控配置
+    monitoring:
+      enabled: true
+      port: 9091
+      metrics_path: "/metrics"
+      
+    # 安全配置
+    security:
+      ssl_enabled: false
+      cors_origins: ["*"]
+      rate_limit: "1000/minute"
+
+# 部署流程配置
+deployment:
+  # 代码检查
+  code_quality:
+    enabled: true
+    commands:
+      - "pytest tests/ -v"
+      - "flake8 app/ --max-line-length=120"
+      - "mypy app/ --ignore-missing-imports"
+      
+  # 依赖管理
+  dependencies:
+    python_version: "3.9"
+    package_manager: "pip"
+    requirements_files:
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      
+  # 构建配置
+  build:
+    # 前端构建
+    frontend:
+      enabled: true
+      source_dir: "frontend"
+      build_dir: "dist"
+      
+    # 后端构建
+    backend:
+      enabled: true
+      source_dir: "app"
+      
+  # 部署策略
+  strategy:
+    type: "blue-green"  # blue-green, rolling, canary
+    health_check_timeout: 300
+    rollback_on_failure: true
+    
+  # 通知配置
+  notifications:
+    enabled: true
+    providers:
+      - type: "slack"
+        webhook_url: "${SLACK_WEBHOOK}"
+        channel: "#deployments"
+        
+      - type: "email"
+        smtp_server: "smtp.gmail.com"
+        port: 587
+        username: "${EMAIL_USERNAME}"
+        password: "${EMAIL_PASSWORD}"
+        
+# 备份配置
+backup:
+  # 数据库备份
+  database:
+    enabled: true
+    schedule: "0 2 * * *"  # 每天凌晨2点
+    retention_days: 7
+    backup_dir: "/backup/database"
+    
+  # 应用备份
+  application:
+    enabled: true
+    schedule: "0 1 * * *"  # 每天凌晨1点
+    retention_days: 3
+    backup_dir: "/backup/application"
+    
+  # 配置文件备份
+  config:
+    enabled: true
+    schedule: "0 0 * * 0"  # 每周日凌晨
+    retention_days: 30
+    backup_dir: "/backup/config"
+
+# 监控和告警
+monitoring:
+  # 系统监控
+  system:
+    cpu_threshold: 80
+    memory_threshold: 85
+    disk_threshold: 90
+    
+  # 应用监控
+  application:
+    health_check_endpoint: "/health"
+    response_time_threshold: 5000  # 5秒
+    error_rate_threshold: 5  # 5%
+    
+  # 数据库监控
+  database:
+    connection_threshold: 50
+    query_time_threshold: 10000  # 10秒
+    
+  # 告警配置
+  alerts:
+    enabled: true
+    channels:
+      - "slack"
+      - "email"
+    
+# 日志配置
+logging:
+  # 应用日志
+  application:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    max_size: "100MB"
+    backup_count: 5
+    
+  # 访问日志
+  access:
+    enabled: true
+    format: "%(asctime)s - %(remote_addr)s - %(request)s - %(status)s - %(response_time)s"
+    
+  # 错误日志
+  error:
+    enabled: true
+    level: "ERROR"
+    
+# 性能优化配置
+performance:
+  # 数据库优化
+  database:
+    connection_pool_size: 20
+    max_connections: 100
+    statement_timeout: 30000  # 30秒
+    
+  # 缓存优化
+  cache:
+    redis_max_connections: 50
+    cache_ttl: 3600  # 1小时
+    
+  # API优化
+  api:
+    gzip_enabled: true
+    cors_enabled: true
+    rate_limiting_enabled: true
+
+# 安全配置
+security:
+  # 身份验证
+  authentication:
+    jwt_secret: "${JWT_SECRET}"
+    token_expiry: 3600  # 1小时
+    
+  # API密钥管理
+  api_keys:
+    rotation_enabled: true
+    rotation_days: 90
+    
+  # 加密配置
+  encryption:
+    algorithm: "AES-256-GCM"
+    key_derivation: "PBKDF2"
+    
+  # 网络安全
+  network:
+    firewall_enabled: true
+    ssl_enabled: true
+    hsts_enabled: true
+
+# 维护配置
+maintenance:
+  # 定期维护
+  schedule:
+    - day: "sunday"
+      time: "02:00"
+      duration: 60  # 分钟
+      
+  # 数据库维护
+  database:
+    vacuum_enabled: true
+    analyze_enabled: true
+    schedule: "0 3 * * *"  # 每天凌晨3点
+    
+  # 日志轮转
+  log_rotation:
+    enabled: true
+    schedule: "0 0 * * *"  # 每天凌晨
+    max_age_days: 7
+
+# 自定义配置
+custom:
+  # 交易所配置
+  exchanges:
+    binance:
+      enabled: true
+      api_key: "${BINANCE_API_KEY}"
+      secret_key: "${BINANCE_SECRET_KEY}"
+      
+    okx:
+      enabled: true
+      api_key: "${OKX_API_KEY}"
+      secret_key: "${OKX_SECRET_KEY}"
+      passphrase: "${OKX_PASSPHRASE}"
+      
+  # 交易策略配置
+  strategies:
+    rsi_strategy:
+      enabled: true
+      rsi_period: 14
+      oversold_threshold: 30
+      overbought_threshold: 70
+      
+    macd_strategy:
+      enabled: true
+      fast_period: 12
+      slow_period: 26
+      signal_period: 9
+      
+  # 风险控制配置
+  risk_management:
+    max_position_size: 0.1  # 10%
+    max_daily_loss: 0.05   # 5%
+    stop_loss: 0.02        # 2%
+    take_profit: 0.05      # 5%

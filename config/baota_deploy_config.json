@@ -1,0 +1,257 @@
+{
+  "deployment": {
+    "script_name": "宝塔面板一键部署配置",
+    "version": "2.0",
+    "last_updated": "2024-11-22",
+    "supported_os": ["Ubuntu 20.04", "Ubuntu 22.04", "CentOS 7", "CentOS 8", "Debian 10", "Debian 11"]
+  },
+  
+  "baota_panel": {
+    "panel_port": 8888,
+    "secure_port": 19999,
+    "install_script": "https://download.bt.cn/install/install-ubuntu_6.0.sh",
+    "centos_script": "https://download.bt.cn/install/install_6.0.sh",
+    "default_path": "/www/server/panel",
+    "log_path": "/www/server/panel/logs",
+    "backup_path": "/www/backup"
+  },
+  
+  "web_servers": {
+    "nginx": {
+      "version": "1.22+",
+      "config_path": "/www/server/nginx/conf/nginx.conf",
+      "vhost_path": "/www/server/panel/vhost/nginx",
+      "log_path": "/www/wwwlogs",
+      "proxy_config": {
+        "api_endpoint": "/api/",
+        "backend_port": 8000,
+        "timeout": 300,
+        "buffer_size": "64k"
+      }
+    },
+    "apache": {
+      "version": "2.4+",
+      "config_path": "/www/server/apache/conf/httpd.conf",
+      "vhost_path": "/www/server/panel/vhost/apache",
+      "modules": ["mod_ssl", "mod_rewrite", "mod_proxy"]
+    }
+  },
+  
+  "databases": {
+    "postgresql": {
+      "version": "13+",
+      "port": 5432,
+      "data_path": "/www/server/pgsql/data",
+      "config_file": "postgresql.conf",
+      "hba_file": "pg_hba.conf",
+      "performance": {
+        "max_connections": 200,
+        "shared_buffers": "512MB",
+        "effective_cache_size": "2GB",
+        "work_mem": "16MB",
+        "maintenance_work_mem": "128MB"
+      },
+      "ai_trading_db": {
+        "name": "ai_trading",
+        "user": "ai_trader",
+        "charset": "UTF8",
+        "collation": "en_US.UTF-8"
+      }
+    },
+    "redis": {
+      "version": "6.0+",
+      "port": 6379,
+      "config_path": "/www/server/redis/redis.conf",
+      "performance": {
+        "maxmemory": "2gb",
+        "maxmemory_policy": "allkeys-lru",
+        "timeout": 300,
+        "databases": 16
+      }
+    },
+    "mysql": {
+      "version": "8.0+",
+      "port": 3306,
+      "data_path": "/www/server/mysql/data",
+      "config_file": "my.cnf"
+    }
+  },
+  
+  "programming_languages": {
+    "python": {
+      "version": "3.9",
+      "virtual_env_path": "/opt/ai-trading",
+      "project_manager": {
+        "name": "Python项目管理器",
+        "project_name": "ai-trading-api",
+        "project_path": "/www/wwwroot/ai-trading",
+        "startup_file": "app/main:app",
+        "port": 8000,
+        "workers": 4,
+        "threads": 2
+      }
+    },
+    "php": {
+      "versions": ["7.4", "8.1"],
+      "fpm_config": "/www/server/php/74/etc/php-fpm.conf",
+      "ini_path": "/www/server/php/74/etc/php.ini"
+    },
+    "nodejs": {
+      "version": "18+",
+      "manager": "PM2管理器",
+      "npm_registry": "https://registry.npmmirror.com"
+    }
+  },
+  
+  "system_dependencies": {
+    "debian_ubuntu": [
+      "curl", "wget", "git", "vim", "htop", "unzip",
+      "software-properties-common", "apt-transport-https",
+      "ca-certificates", "gnupg", "lsb-release",
+      "build-essential", "cmake", "gcc", "g++", "make",
+      "python3-dev", "python3-pip", "python3-venv",
+      "libpq-dev", "libssl-dev", "libffi-dev",
+      "libxml2-dev", "libxslt1-dev", "libjpeg-dev",
+      "libpng-dev", "libfreetype6-dev", "zlib1g-dev",
+      "libhdf5-dev", "libblas-dev", "liblapack-dev", "gfortran",
+      "postgresql-client", "redis-tools", "mysql-client",
+      "ufw", "fail2ban", "supervisor"
+    ],
+    "centos_redhat": [
+      "curl", "wget", "git", "vim", "htop", "unzip",
+      "epel-release", "yum-utils",
+      "gcc", "gcc-c++", "make", "cmake",
+      "python3", "python3-pip", "python3-devel",
+      "postgresql-devel", "openssl-devel", "libffi-devel",
+      "libxml2-devel", "libxslt-devel", "libjpeg-turbo-devel",
+      "libpng-devel", "freetype-devel", "zlib-devel",
+      "hdf5-devel", "blas-devel", "lapack-devel", "gcc-gfortran",
+      "postgresql", "redis", "mysql",
+      "firewalld", "fail2ban", "supervisor"
+    ]
+  },
+  
+  "security": {
+    "firewall": {
+      "ssh_port": 22,
+      "web_ports": [80, 443],
+      "panel_ports": [8888, 19999],
+      "db_ports": [5432, 6379, 3306],
+      "app_ports": [8000, 5000]
+    },
+    "ssh": {
+      "custom_port": 2222,
+      "permit_root_login": "no",
+      "password_authentication": "no",
+      "pubkey_authentication": "yes",
+      "max_auth_tries": 3
+    },
+    "fail2ban": {
+      "bantime": 3600,
+      "findtime": 600,
+      "maxretry": 3,
+      "jails": ["sshd", "nginx-http-auth", "postgresql"]
+    }
+  },
+  
+  "monitoring": {
+    "system_metrics": {
+      "cpu_threshold": 80,
+      "memory_threshold": 85,
+      "disk_threshold": 90,
+      "check_interval": 10
+    },
+    "log_paths": {
+      "system": "/var/log/",
+      "nginx": "/www/wwwlogs/",
+      "postgresql": "/www/server/pgsql/data/log/",
+      "redis": "/www/server/redis/",
+      "application": "/www/wwwroot/ai-trading/logs/"
+    }
+  },
+  
+  "ai_trading_system": {
+    "project_structure": {
+      "root_path": "/www/wwwroot/ai-trading",
+      "frontend_path": "/www/wwwroot/ai-trading/frontend/dist",
+      "backend_path": "/www/wwwroot/ai-trading/app",
+      "config_path": "/www/wwwroot/ai-trading/config",
+      "scripts_path": "/www/wwwroot/ai-trading/scripts",
+      "logs_path": "/www/wwwroot/ai-trading/logs"
+    },
+    "environment_variables": {
+      "DATABASE_URL": "postgresql://ai_trader:password@localhost:5432/ai_trading",
+      "REDIS_URL": "redis://:redis_password@localhost:6379/0",
+      "API_KEY": "your_api_key",
+      "SECRET_KEY": "your_secret_key",
+      "DEBUG": "False",
+      "LOG_LEVEL": "INFO"
+    },
+    "required_python_packages": [
+      "fastapi", "uvicorn", "gunicorn", "python-multipart",
+      "psycopg2-binary", "redis", "sqlalchemy", "alembic",
+      "requests", "websocket-client", "ccxt", "pandas", "numpy",
+      "scikit-learn", "torch", "tensorflow", "prometheus-client", "psutil"
+    ]
+  },
+  
+  "deployment_checklist": {
+    "pre_deployment": [
+      "检查服务器资源（CPU≥2核，内存≥4GB）",
+      "确认网络连接稳定",
+      "备份重要数据",
+      "确认操作系统版本支持"
+    ],
+    "during_deployment": [
+      "宝塔面板安装成功",
+      "必要软件安装完成",
+      "Python环境配置正确",
+      "数据库服务正常运行",
+      "防火墙配置完成"
+    ],
+    "post_deployment": [
+      "网站可正常访问",
+      "API接口响应正常",
+      "数据库连接正常",
+      "监控系统运行正常",
+      "安全配置生效"
+    ]
+  },
+  
+  "troubleshooting": {
+    "common_issues": {
+      "baota_panel_unreachable": [
+        "检查防火墙规则",
+        "确认端口监听状态",
+        "重启宝塔服务",
+        "查看面板日志"
+      ],
+      "python_app_failed": [
+        "检查依赖包安装",
+        "查看应用日志",
+        "手动启动测试",
+        "检查虚拟环境"
+      ],
+      "database_connection_failed": [
+        "检查数据库服务状态",
+        "验证连接参数",
+        "检查配置文件",
+        "查看数据库日志"
+      ]
+    },
+    "performance_optimization": {
+      "nginx": [
+        "启用gzip压缩",
+        "配置连接池",
+        "设置缓存策略",
+        "优化worker进程"
+      ],
+      "postgresql": [
+        "创建适当索引",
+        "定期vacuum分析",
+        "调整内存参数",
+        "监控慢查询"
+      ]
+    }
+  }
+}
